@@ -1,0 +1,198 @@
+{
+	"name": "Insights_ingest",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "spark3p2med",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false
+		},
+		"metadata": {
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Insights Module - Ingest\r\n",
+					"\r\n",
+					"This notebook demonstrates the utility of the OEA_py class notebook, and speeding up the process of ingesting the Insights data.\r\n",
+					"\r\n",
+					"The steps outlined below describe how this notebook is used to ingest the Microsoft Education Insights module tables:\r\n",
+					"\r\n",
+					"- Set the workspace for where the tables are located. \r\n",
+					"- 1 function is defined and used:\r\n",
+					"   1. **ingest_insights_dataset**: identifies primary keys per table and ingests each table from Insights (except PersonRelationship and RefTranslation - which currently don't have test data)."
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"tags": [
+						"parameters"
+					]
+				},
+				"source": [
+					"workspace = 'dev'"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run OEA_py"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# 1) set the workspace (this determines where in the data lake you'll be writing to and reading from).\r\n",
+					"# You can work in 'dev', 'prod', or a sandbox with any name you choose.\r\n",
+					"# For example, Sam the developer can create a 'sam' workspace and expect to find his datasets in the data lake under oea/sandboxes/sam\r\n",
+					"oea.set_workspace(workspace)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"items = oea.get_folders('stage1/Transactional/M365/v1.14')"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"print(items)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# 2) this step refines the data through the use of metadata (this is where the pseudonymization of the data occurs).\r\n",
+					"def ingest_insights_dataset(tables_source):\r\n",
+					"    items = oea.get_folders(tables_source)\r\n",
+					"    options = {'header':False}\r\n",
+					"    for item in items: \r\n",
+					"        table_path = tables_source +'/'+ item\r\n",
+					"        try:\r\n",
+					"            if item == 'metadata.csv':\r\n",
+					"                logger.info('ignore metadata processing, since this is not a table to be ingested')\r\n",
+					"            elif item == 'activity':\r\n",
+					"                oea.ingest('M365/v1.14/' + item, '_c3', options)\r\n",
+					"            elif item == 'AadGroupMembership':\r\n",
+					"                oea.ingest('M365/v1.14/' + item, '_c5', options)\r\n",
+					"            elif item == 'PersonRelationship':\r\n",
+					"                logger.info('No test data')\r\n",
+					"            elif item == 'RefTranslation':\r\n",
+					"                logger.info('No test data')\r\n",
+					"            else:\r\n",
+					"                oea.ingest('M365/v1.14/' + item, '_c0', options)\r\n",
+					"        except AnalysisException as e:\r\n",
+					"            # This means the table may have not been properly refined due to errors with the primary key not aligning with columns expected in the lookup table.\r\n",
+					"            pass"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"metadata = oea.get_metadata_from_url('https://raw.githubusercontent.com/microsoft/OpenEduAnalytics/main/modules/module_catalog/Microsoft_Education_Insights/test_data/metadata.csv')\r\n",
+					"ingest_insights_dataset('stage1/Transactional/M365/v1.14')"
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"name": "aanseacore_v5_powerBI",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "PowerBIWorkspace",
+		"typeProperties": {
+			"workspaceID": "65aa1469-6054-4af8-9252-7caf828f06d3",
+			"tenantID": "459674f8-d882-4017-8803-c8950b85797f"
+		}
+	}
+}
